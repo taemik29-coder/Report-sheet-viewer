@@ -3,253 +3,121 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>김태미 | 구글시트 성적표(CSV 연동)</title>
+  <title>성적 조회 | 학생 전용</title>
   <style>
     :root { --radius: 14px; }
     * { box-sizing: border-box; }
     body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", Arial, "Apple SD Gothic Neo", sans-serif; margin: 0; padding: 24px; background: #f7f7fb; }
-    .container { max-width: 960px; margin: 0 auto; background: #fff; padding: 24px; border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,0.06); }
-    h1 { margin: 0 0 8px; font-size: 24px; }
-    .sub { color: #666; margin-bottom: 20px; }
-    .controls { display: grid; gap: 12px; grid-template-columns: 1fr 1fr 1fr auto; align-items: end; margin-bottom: 16px; }
-    label { font-size: 13px; color: #444; display: block; margin-bottom: 6px; }
-    input, select, button { width: 100%; padding: 10px 12px; border: 1px solid #e2e2ea; border-radius: 10px; background: #fafafe; outline: none; transition: border .15s ease, background .15s ease; }
-    input:focus, select:focus { border-color: #bbb; background: #fff; }
-    button { cursor: pointer; border: none; background: #2f67ff; color: #fff; font-weight: 600; }
-    button:hover { filter: brightness(1.05); }
-    .table-wrap { overflow: auto; border: 1px solid #eee; border-radius: var(--radius); }
-    table { width: 100%; border-collapse: collapse; min-width: 560px; }
-    thead th { position: sticky; top: 0; background: #f2f5ff; z-index: 1; text-align: left; font-weight: 700; font-size: 14px; color: #2c2c2c; }
-    th, td { padding: 12px 14px; border-bottom: 1px solid #f0f0f0; }
-    tbody tr:hover { background: #fafcff; }
-    .badge { display:inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: #eef3ff; color:#2f67ff; }
-    .footer { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-top: 14px; color: #555; font-size: 14px; }
-    .error { background: #fff3f3; color: #b00020; padding: 10px 12px; border: 1px solid #ffdada; border-radius: 10px; margin-bottom: 16px; display:none; }
+    .container { max-width: 720px; margin: 0 auto; background: #fff; padding: 24px; border-radius: var(--radius); box-shadow: 0 8px 32px rgba(0,0,0,0.06); }
+    h1 { margin: 0 0 8px; font-size: 22px; }
+    .sub { color:#666; margin-bottom: 18px; }
+    label { font-size: 13px; color:#444; display:block; margin-bottom: 6px;}
+    input, button { width: 100%; padding: 12px; border: 1px solid #e2e2ea; border-radius: 10px; background: #fafafe; outline: none; }
+    input:focus { border-color:#bbb; background:#fff;}
+    button { cursor:pointer; border:none; background:#2f67ff; color:#fff; font-weight:600; margin-top:8px;}
+    .error { background:#fff3f3; color:#b00020; padding:10px 12px; border:1px solid #ffdada; border-radius:10px; margin:12px 0; display:none;}
+    .ok { background:#f2f8ff; color:#114488; padding:8px 10px; border:1px solid #cfe2ff; border-radius:10px; margin:12px 0; display:none;}
+    table { width:100%; border-collapse: collapse; margin-top: 14px; }
+    th, td { border-bottom:1px solid #f0f0f0; padding:12px 10px; text-align:left; }
+    thead th { background:#f2f5ff; font-weight:700; }
+    .footer { text-align:right; color:#888; margin-top:14px; font-size:12px;}
+    .actions { display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:end; }
   </style>
 </head>
 <body>
-  <div class="container" role="main">
-    <h1>성적 조회 <span class="badge">Google Sheets CSV 연동</span></h1>
-    <p class="sub"> 구글 시트 연동 프로그램입니다. </p>
+  <div class="container">
+    <h1>성적 조회 <span style="font-size:12px;background:#eef3ff;color:#2f67ff;border-radius:999px;padding:2px 8px;">학생 전용</span></h1>
+    <p class="sub">학번으로 본인 성적·과목만 확인합니다. (읽기 전용 / 김태미 프로젝트)</p>
 
     <div id="errorBox" class="error" aria-live="assertive"></div>
+    <div id="okBox" class="ok"></div>
 
-    <div class="controls">
+    <div class="actions">
       <div>
-        <label for="q">검색(학번/이름)</label>
-        <input id="q" type="text" placeholder="예: 20251234 또는 홍길동" />
+        <label for="studentId">학번</label>
+        <input id="studentId" type="text" placeholder="예: 20250001" />
       </div>
       <div>
-        <label for="min">최소 점수</label>
-        <input id="min" type="number" min="0" max="100" placeholder="예: 70" />
-      </div>
-      <div>
-        <label for="sortBy">정렬</label>
-        <select id="sortBy">
-          <option value="none">기본(시트 순서)</option>
-          <option value="scoreDesc">점수 내림차순</option>
-          <option value="scoreAsc">점수 오름차순</option>
-          <option value="idAsc">학번 오름차순</option>
-          <option value="nameAsc">이름 오름차순</option>
-        </select>
-      </div>
-      <div>
-        <button id="refreshBtn" type="button">데이터 새로고침</button>
+        <button id="viewBtn" type="button">내 성적 보기</button>
       </div>
     </div>
 
-    <div class="table-wrap" aria-live="polite">
-      <table id="table">
-        <thead>
-        <tr>
-          <th scope="col">학번</th>
-          <th scope="col">이름</th>
-          <th scope="col">점수</th>
-        </tr>
-        </thead>
-        <tbody id="tbody">
-        <tr><td colspan="3">데이터를 불러오는 중...</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <table aria-live="polite">
+      <thead>
+        <tr><th>학번</th><th>이름</th><th>점수</th><th>과목</th></tr>
+      </thead>
+      <tbody id="tbody"><tr><td colspan="4">대기 중...</td></tr></tbody>
+    </table>
 
-    <div class="footer">
-      <div id="summary">총 0명 · 평균 0점</div>
-      <div>© 김태미 프로젝트 </div>
-    </div>
+    <div class="footer">© 김태미 프로젝트 전용</div>
   </div>
 
   <script>
-    // ===== 1) 필수 설정 =====
-    const SPREADSHEET_ID = "1xzZZpfQpIRt7O94BBAKUjnGVAdNlQihb2v0l7bJSHj0"; // 그대로 사용
-    const SHEET_NAME     = "시트1"; // 
+    // ===== 설정 =====
+    const SPREADSHEET_ID = "1xzZZpfQpIRt7O94BBAKUjnGVAdNlQihb2v0l7bJSHj0"; // 그대로
+    const SHEET_NAME     = "시트1"; // 하단 탭 이름
+    // "웹에 게시" 링크를 쓰면 CORS가 더 안정적입니다(선택):
+    // const CSV_URL = "https://docs.google.com/spreadsheets/d/....../pub?gid=0&single=true&output=csv";
+    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}`;
 
-    // (선택) 혹시 시트 이름 대신 gid(숫자)로 접근하고 싶다면:
-    // const SHEET_GID = "0"; // URL 끝의 gid 값. 사용 시 buildCsvUrlByGid()를 쓰세요.
+    const $ = s => document.querySelector(s);
+    const error = (m)=>{const b=$("#errorBox"); b.textContent=m||""; b.style.display=m?"block":"none";};
+    const ok = (m)=>{const b=$("#okBox"); b.textContent=m||""; b.style.display=m?"block":"none";};
 
-    // ===== 2) CSV URL 빌더 (시트 이름 기반) =====
-    function buildCsvUrlByName(spreadsheetId, sheetName) {
-      // 한글/공백 안전하게 처리
-      const encoded = encodeURIComponent(sheetName);
-      return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encoded}`;
-    }
-
-    // (옵션) gid 기반 URL
-    function buildCsvUrlByGid(spreadsheetId, gid) {
-      return `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&id=${spreadsheetId}&gid=${gid}`;
-    }
-
-    const CSV_URL = buildCsvUrlByName(SPREADSHEET_ID, SHEET_NAME);
-    // const CSV_URL = buildCsvUrlByGid(SPREADSHEET_ID, SHEET_GID); // gid로 쓰고 싶으면 이 줄 사용
-
-    const $ = sel => document.querySelector(sel);
-
-    function setError(msg) {
-      const box = $("#errorBox");
-      if (!msg) { box.style.display = "none"; box.textContent = ""; return; }
-      box.textContent = msg;
-      box.style.display = "block";
-    }
-
-    function parseScore(v) {
-      if (v == null) return null;
-      const n = Number(String(v).replace(/[^\d.]/g, ""));
-      return isNaN(n) ? null : n;
-    }
-
-    // ===== 3) 안전한 CSV 파서 (따옴표/콤마 처리) =====
-    function parseCSV(text) {
-      const rows = [];
-      let row = [];
-      let cell = "";
-      let inQuotes = false;
-
-      for (let i = 0; i < text.length; i++) {
-        const ch = text[i];
-        const next = text[i+1];
-
-        if (inQuotes) {
-          if (ch === '"' && next === '"') { // 이스케이프된 따옴표
-            cell += '"'; i++;
-          } else if (ch === '"') { // 닫힘
-            inQuotes = false;
-          } else {
-            cell += ch;
-          }
-        } else {
-          if (ch === '"') {
-            inQuotes = true;
-          } else if (ch === ',') {
-            row.push(cell); cell = "";
-          } else if (ch === '\n') {
-            row.push(cell); rows.push(row);
-            row = []; cell = "";
-          } else if (ch === '\r') {
-            // 무시 (CRLF 대응)
-          } else {
-            cell += ch;
-          }
-        }
+    function parseCSV(text){
+      const rows=[]; let row=[],cell="",q=false;
+      for(let i=0;i<text.length;i++){const ch=text[i],n=text[i+1];
+        if(q){ if(ch=='"'&&n=='"'){cell+='"'; i++;} else if(ch=='"'){q=false;} else {cell+=ch;} }
+        else{ if(ch=='"'){q=true;} else if(ch==','){row.push(cell);cell="";} else if(ch=='\n'){row.push(cell);rows.push(row);row=[];cell="";} else if(ch!='\r'){cell+=ch;} }
       }
-      // 마지막 셀/행 처리
-      row.push(cell);
-      rows.push(row);
-      return rows;
+      row.push(cell); rows.push(row); return rows;
     }
 
-    let rawRows = []; // 데이터만(헤더 제외)
-
-    function render(rows) {
-      const tbody = $("#tbody");
-      if (!rows.length) {
-        tbody.innerHTML = `<tr><td colspan="3">표시할 데이터가 없습니다.</td></tr>`;
-        $("#summary").textContent = `총 0명 · 평균 0점`;
-        return;
-      }
-      const html = rows.map(r => {
-        const id = r[0] ?? "";
-        const name = r[1] ?? "";
-        const score = r[2] ?? "";
-        return `<tr><td>${escapeHtml(id)}</td><td>${escapeHtml(name)}</td><td>${escapeHtml(score)}</td></tr>`;
-      }).join("");
-      tbody.innerHTML = html;
-
-      const scores = rows.map(r => parseScore(r[2])).filter(n => typeof n === "number");
-      const avg = scores.length ? (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1) : 0;
-      $("#summary").textContent = `총 ${rows.length}명 · 평균 ${avg}점`;
+    async function fetchRows(){
+      const res = await fetch(CSV_URL,{cache:"no-store"});
+      if(!res.ok) throw new Error("CSV 응답 오류: "+res.status);
+      const txt = await res.text();
+      const v = parseCSV(txt);
+      if(!v.length) return [];
+      const [header,...data] = v;
+      // 열이 3개든 4개든 대응: [학번,이름,점수,과목?]
+      return data.map(r=>[r[0]??"", r[1]??"", r[2]??"", r[3]??""]);
     }
 
-    function escapeHtml(s) {
-      return String(s).replace(/[&<>"']/g, m => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-      }[m]));
+    function render(rows){
+      const tb = $("#tbody");
+      if(!rows.length){ tb.innerHTML = `<tr><td colspan="4">해당 학번 데이터가 없습니다.</td></tr>`; return; }
+      tb.innerHTML = rows.map(r=>`<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td></tr>`).join("");
+    }
+    const esc = s=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+
+    async function showMyScore() {
+      error(""); ok("");
+      const id = $("#studentId").value.trim();
+      if(!id){ error("학번을 입력하세요."); render([]); return; }
+      $("#tbody").innerHTML = `<tr><td colspan="4">불러오는 중...</td></tr>`;
+      try{
+        const rows = await fetchRows();
+        const mine = rows.filter(r => String(r[0]).trim() === id);
+        if(mine.length){ ok(`${id} 학생의 성적 ${mine.length}건이 조회되었습니다.`); }
+        render(mine);
+        // 주소에 ?id=학번 붙여주기(북마크용)
+        const url = new URL(location.href); url.searchParams.set("id", id); history.replaceState(null,"",url);
+      }catch(e){ console.error(e); error("데이터를 불러오지 못했습니다. (시트 공개/시트명/권한 확인)"); render([]); }
     }
 
-    function applyView() {
-      const q = $("#q").value.trim().toLowerCase();
-      const minStr = $("#min").value.trim();
-      const min = minStr === "" ? null : Number(minStr);
-      const sortBy = $("#sortBy").value;
+    // 이벤트
+    $("#viewBtn").addEventListener("click", showMyScore);
+    $("#studentId").addEventListener("keydown", e=>{ if(e.key==="Enter") showMyScore(); });
 
-      let rows = rawRows.slice();
-
-      if (q) {
-        rows = rows.filter(r => {
-          const id = String(r[0] ?? "").toLowerCase();
-          const name = String(r[1] ?? "").toLowerCase();
-          return id.includes(q) || name.includes(q);
-        });
-      }
-      if (!isNaN(min) && min !== null) {
-        rows = rows.filter(r => {
-          const s = parseScore(r[2]);
-          return typeof s === "number" && s >= min;
-        });
-      }
-
-      switch (sortBy) {
-        case "scoreDesc":
-          rows.sort((a,b) => (parseScore(b[2])??-Infinity) - (parseScore(a[2])??-Infinity)); break;
-        case "scoreAsc":
-          rows.sort((a,b) => (parseScore(a[2])??Infinity) - (parseScore(b[2])??Infinity)); break;
-        case "idAsc":
-          rows.sort((a,b) => String(a[0]??"").localeCompare(String(b[0]??""))); break;
-        case "nameAsc":
-          rows.sort((a,b) => String(a[1]??"").localeCompare(String(b[1]??""))); break;
-        default: /* none */ break;
-      }
-
-      render(rows);
-    }
-
-    async function load() {
-      setError("");
-      $("#tbody").innerHTML = `<tr><td colspan="3">데이터를 불러오는 중...</td></tr>`;
-      try {
-        const res = await fetch(CSV_URL, { cache: "no-store" });
-        if (!res.ok) throw new Error(`CSV 응답 오류: ${res.status}`);
-        const text = await res.text();
-        const values = parseCSV(text);
-
-        if (!values.length) { rawRows = []; render([]); return; }
-
-        // 첫 행은 헤더(학번, 이름, 점수)로 간주
-        const [, ...rows] = values;
-        rawRows = rows.map(r => [r[0] ?? "", r[1] ?? "", r[2] ?? ""]);
-        applyView();
-      } catch (err) {
-        console.error(err);
-        setError("데이터를 불러오지 못했습니다. (시트 공개 설정, 시트 이름/권한 확인)");
-        $("#tbody").innerHTML = `<tr><td colspan="3">오류로 데이터를 표시할 수 없습니다.</td></tr>`;
-      }
-    }
-
-    $("#q").addEventListener("input", applyView);
-    $("#min").addEventListener("input", applyView);
-    $("#sortBy").addEventListener("change", applyView);
-    $("#refreshBtn").addEventListener("click", load);
-
-    load();
+    // ?id=2025xxxx 지원
+    (function initFromQuery(){
+      const u = new URL(location.href);
+      const id = u.searchParams.get("id");
+      if(id){ $("#studentId").value = id; showMyScore(); }
+      else { $("#tbody").innerHTML = `<tr><td colspan="4">학번을 입력해 주세요.</td></tr>`; }
+    })();
   </script>
 </body>
 </html>
+
